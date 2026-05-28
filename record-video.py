@@ -1,10 +1,11 @@
 import cv2
 import time
+import platform
 from pathlib import Path
 from datetime import datetime
 
 # --- Configuration ---
-DEVICE_ID = 1
+DEVICE_ID = 2
 WIDTH = 640
 HEIGHT = 480
 FPS = 30
@@ -13,7 +14,8 @@ OUTPUT_DIR = Path("test_videos")
 RECORD_SECONDS = None  # set to None to record until q/ESC
 
 def open_camera():
-    cap = cv2.VideoCapture(DEVICE_ID, cv2.CAP_DSHOW)
+    backend = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_V4L2
+    cap = cv2.VideoCapture(DEVICE_ID, backend)
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)

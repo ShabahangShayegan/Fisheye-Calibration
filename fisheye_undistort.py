@@ -25,6 +25,28 @@ def build_fisheye_undistort_maps(camera_matrix, dist_coeff, frame_size, balance,
         fov_scale=scale,
     )
 
+    # Circular fisheye cameras have black corners — pixels past 90° from the optical
+    # axis are undefined for perspective projection. When the calibrated focal length
+    # is small enough that horizontal image edges exceed 90°, the estimator returns a
+    # degenerate zero matrix. Detect this and compute a manual replacement.
+    if new_camera_matrix[0, 0] < 1.0 or new_camera_matrix[1, 1] < 1.0:
+        f_fisheye = (camera_matrix[0, 0] + camera_matrix[1, 1]) / 2.0
+        # Fisheye circle fits the shorter image dimension; compute its angular radius.
+        r_circle = min(width, height) / 2.0
+        theta_max = r_circle / f_fisheye          # radians; valid region boundary
+        theta_target = theta_max * (1.0 - balance * 0.5)  # balance=0 → wide, 1 → narrow
+        # Focal length for a perspective image that shows ±theta_target degrees.
+        f_new = (min(width, height) / 2.0) / np.tan(theta_target) / scale
+        new_camera_matrix = np.array(
+            [[f_new, 0.0, width / 2.0],
+             [0.0, f_new, height / 2.0],
+             [0.0, 0.0, 1.0]],
+            dtype=np.float64,
+        )
+        print(f"[INFO] Estimator returned degenerate matrix (circular fisheye with FOV > 180° "
+              f"for full frame). Using manual new_K: fx=fy={f_new:.1f}, "
+              f"theta_max={np.degrees(theta_max):.1f}°, theta_target={np.degrees(theta_target):.1f}°")
+
     map1, map2 = cv2.fisheye.initUndistortRectifyMap(
         camera_matrix,
         dist_coeff,

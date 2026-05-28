@@ -524,7 +524,8 @@ def auto_fisheye_calibrate(audio_enabled=False):
     all_ids = []
     img_shape = None
 
-    cap = cv2.VideoCapture(DEVICE_ID, cv2.CAP_DSHOW)
+    backend = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_V4L2
+    cap = cv2.VideoCapture(DEVICE_ID, backend)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
 
